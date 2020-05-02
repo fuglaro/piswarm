@@ -1,0 +1,17 @@
+ARG baseimg=linuxserver/mariadb
+FROM $baseimg
+RUN echo '\
+[mysqld]\n\
+plugin_load_add = file_key_management\n\
+file_key_management = ON\n\
+file_key_management_encryption_algorithm = AES_CBC\n\
+file_key_management_filename = /run/secrets/mysql_authenticator_encryption_key\n\
+innodb_encrypt_tables = ON\n\
+innodb_encrypt_temporary_tables  = ON\n\
+innodb_encrypt_log = ON\n\
+aria_encrypt_tables = ON\n\
+encrypt-tmp-disk-tables = 1\n\
+encrypt-tmp-files = 0\n\
+encrypt-binlog = 1\n\
+innodb_encryption_threads = 4\n\
+' > /etc/mysql/conf.d/encryption.cnf

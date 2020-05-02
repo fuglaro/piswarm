@@ -1,0 +1,123 @@
+#cloud-config
+# vim: syntax=yaml
+#
+
+# Set your hostname here, the manage_etc_hosts will update the hosts file entries as well
+hostname: black-pearl
+manage_etc_hosts: true
+
+# You could modify this for your own user information
+users:
+  - name: chief
+    gecos: "Piswarm Manager"
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    groups: users,docker,video,input
+    lock_passwd: true
+    ssh-authorized-keys:
+      - ssh-rsa PUBLICSSHRSA
+
+# Set the locale of the system
+locale: "en_US.UTF-8"
+
+# Set the timezone
+# Value of 'timezone' must exist in /usr/share/zoneinfo
+timezone: "GMT"
+
+# Update apt packages on first boot
+# package_reboot_if_required: true
+package_update: true
+package_upgrade: false
+
+# Install any additional apt packages you need here
+packages:
+  - glusterfs-server
+
+# WiFi connect to HotSpot
+# - use `wpa_passphrase SSID PASSWORD` to encrypt the psk
+write_files:
+  - content: |
+      allow-hotplug wlan0
+      iface wlan0 inet dhcp
+      wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+      iface default inet dhcp
+    path: /etc/network/interfaces.d/wlan0
+  - content: |
+      country=de
+      ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+      update_config=1
+      network={
+      ssid="WIFISSID"
+      psk="WIFIPASSWD"
+      proto=RSN
+      key_mgmt=WPA-PSK
+      pairwise=CCMP
+      auth_alg=OPEN
+      }
+    path: /etc/wpa_supplicant/wpa_supplicant.conf
+  - content: |
+      [Unit]
+      Description=Reboots the machine if the root partition disappears
+      After=network.target
+      [Service]
+      User=root
+      ExecStart=/sbin/compromised-reboot
+      Restart=always
+      RestartSec=1
+      [Install]
+      WantedBy=multi-user.target
+    path: /etc/systemd/system/compromised-reboot.service
+# These commands will be ran once on first boot only
+runcmd:
+  # Pickup the hostname changes
+  - 'systemctl restart avahi-daemon'
+
+  # Update package repo cache
+  - until ping -c1 8.8.8.8; do sleep 1; done # wait for internet
+  - date +%Y%m%d -s DATENOW # apt-get checks repository validity against the date
+  - apt-get update
+
+  # Ensure the system clock is updated
+  - sed -i 's^#server ntp.your-provider.example^server 0.pool.ntp.org\nserver 1.pool.ntp.org\nserver 2.pool.ntp.org\nserver 3.pool.ntp.org^' /etc/ntp.conf
+  - apt install -y ntpdate
+  - systemctl stop ntp
+  - ntpdate pool.ntp.org
+  - systemctl start ntp
+
+  # Configure the firewall
+  - apt install -y ufw
+  - ufw allow 22/tcp # ssh
+  - ufw allow 111/tcp # portmapper
+  - ufw allow 443/tcp # https
+  - ufw allow 2377/tcp # docker swarm management comms
+  - ufw allow 7946/tcp # docker swarm node comms
+  - ufw allow 7946/udp # docker swarm node comms
+  - ufw allow 4789/udp # docker overlay network
+  - ufw allow 24007/tcp # gluster
+  - ufw allow 24008/tcp # gluster management
+  - ufw allow 49152:49182/tcp # gluster bricks
+  - ufw enable
+
+  # Set up the gluster client
+  - apt install -y glusterfs-client
+
+  # Install essentials
+  apt install -y nmap
+
+  # Install command to powercycle when potentially compromised
+  - cp /boot/compromised-reboot /sbin/compromised-reboot
+  - systemctl daemon-reload
+  - systemctl enable compromised-reboot.service
+  - systemctl start compromised-reboot.service
+
+bootcmd:
+
+  - echo "Readying Boot..."
+
+#NOHDMI  # Disable HDMI
+#NOHDMI  - '/usr/bin/tvservice -o'
+#NOHDMI  - 'vcgencmd display_power 0'
+
+#NOWIFI  # Disable Wifi
+#NOWIFI  - 'iwconfig wlan0 txpower off'
+

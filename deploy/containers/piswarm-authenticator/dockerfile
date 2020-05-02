@@ -1,0 +1,24 @@
+ARG baseimg=python:3.6
+FROM $baseimg
+ENV PYTHONUNBUFFERED 1
+RUN mkdir -p /var/app/current
+WORKDIR /var/app/current
+COPY Pipfile ./
+COPY Pipfile.lock ./
+RUN pip install pipenv
+RUN pipenv sync
+RUN pipenv run pip freeze > requirements.txt
+RUN pip install -r requirements.txt
+RUN pip install gunicorn
+COPY authenticator/manage.py ./
+COPY authenticator/authenticator ./authenticator
+CMD python manage.py makemigrations \
+    && python manage.py migrate \
+    && echo "from django.contrib.auth import get_user_model\n\
+User = get_user_model()\n\
+with open('/run/secrets/authenticator_superuser_password', 'r') as f:\n\
+    password = f.read().rstrip()\n\
+    User.objects.create_superuser(\n\
+        '${SUPERUSER}', '${SUPERUSER_EMAIL}', password)\n"\
+        | python manage.py shell \
+    ; gunicorn authenticator.wsgi -b 0.0.0.0:8000

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>{% block head_title %}{% endblock %}</title>
+    {% block extra_head %}
+    {% endblock %}
+    <!--Import jquery, materialize.css and material icons etc-->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script>
+      $(document).ready(function() {
+
+        /**
+         * HTML element class manipulations so we can use the default
+         * HTML provided with allauth (including future updates!
+         * security needs updates!), along with the materialize css.
+         */
+
+        // Allauth forms need smaller headers.
+        $.fn.changeElementType = function(newType) {
+          var newElements = [];
+          $(this).each(function() {
+            var attrs = {};
+            $.each(this.attributes, function(idx, attr) {
+              attrs[attr.nodeName] = attr.nodeValue;
+            });
+            var newElement = $("<" + newType + "/>", attrs).append($(this).contents());
+            $(this).replaceWith(newElement);
+            newElements.push(newElement);
+          });
+          return $(newElements);
+          };
+        // Header element swapping and coloring.
+        $('h2').addClass('blue-grey-text').changeElementType('h5');
+        $('h1').addClass('blue-grey-text').changeElementType('h4');
+
+        // Make all buttons pretty and right aligned.
+        $('button').addClass('btn waves-effect right');
+        $('input:submit').addClass('btn waves-effect right teal lighten-3');
+
+        // Initialise the navigation bars.
+        $('nav').addClass('blue darken-3');
+        $('.sidenav').sidenav();
+
+        // Social account provider pretty lozenges.
+        $('.socialaccount_provider').addClass('blue-text chip hoverable')
+
+        // Errors should show up on cards.
+        $('div[id=errorMsg]')
+          .addClass('card blue-grey darken-1')
+          .wrapInner("<div class='card-content white-text'/>")
+
+        // Style form borders
+        $('fieldset').addClass('collection');
+
+        /**
+         * Style: social account management list.
+         **/
+        $('label').each(function() {
+          if( $(this).attr('for').match(/id_account_.+/) ) {
+            $(this)
+              .addClass('blue-grey-text')
+              // Each entry should be a card.
+              .wrap("<div class='card light-blue lighten-5 radio-group'/>")
+              .wrap("<div class='card-content'/>");
+            // Make the account's user name show up as a badge on the right.
+            $(this).contents().last().wrap('<span class="blue-grey-text"/>')
+          }
+        });
+
+        /**
+         * Style: email account management list.
+         **/
+        $('label').each(function(){
+          if( $(this).attr('for').match(/email_radio_.+/) ) {
+            $(this)
+              .addClass('blue-grey-text')
+              // Each entry should be a card.
+              .wrap("<div class='card email-card radio-group'/>")
+              .wrap("<div class='card-content'/>");
+          }
+        });
+        // Fix an issue with the radio button being after the email!?
+        // Add a new email span after the radio button.
+        $('<span class=email-item></span>').insertBefore('span[class=verified]');
+        $('<span class=email-item></span>').insertBefore('span[class=unverified]');
+        $('.email-item').each(function() {
+          // Set the new span to have the email text.
+          $(this).text($(this).parent().contents().filter(function() {
+            return this.nodeType == Node.TEXT_NODE;
+          }).text())
+          // Clear the email text to the left of the radio button.
+          $(this).parent().contents().filter(function() {
+            return this.nodeType == Node.TEXT_NODE;
+          }).remove()
+        });
+        // Make the email row state flags pretty badges on the right.
+        $('.verified').addClass('badge').addClass('green-text')
+        $('.unverified').addClass('badge').addClass('red-text')
+        $('.primary').addClass('badge').addClass('blue-grey-text')
+        $('.primary').parents('.email-card').addClass('teal lighten-5')
+
+        // Make the 'radio-group' class a clickable wrapper
+        // around a radio input.
+        $('.radio-group').click(function(){
+          var input = $(this).find('input:radio');
+          input.prop('checked', true);
+          $('input:radio[name=' + input.attr('name') + ']')
+            .filter(':not(input[id=' + input.attr('id') + '])')
+            .attr('checked',false);
+        });
+      });
+    </script>
+  </head>
+  <body>
+
+
+    {% block body %}
+
+
+    <div class="navbar-fixed">
+      <nav>
+        <div class="nav-wrapper">
+          <a href="#" class="brand-logo"><nobr>Battle Chat Rising!</nobr></a>
+          <a href="#" data-target="mobile-menu" class="sidenav-trigger"><i class="material-icons">menu</i></a>
+          <ul id="nav-mobile" class="right hide-on-med-and-down">
+
+            {% if user.is_authenticated %}
+            <li><a href="{% url 'account_email' %}">E-mail</a></li>
+            <li><a href="{% url 'account_change_password' %}">Password</a></li>
+            <li><a href="{% url 'socialaccount_connections' %}">Accounts</a></li>
+            <li><a href="{% url 'account_logout' %}">Sign Out</a></li>
+            {% else %}
+            <li><a href="{% url 'account_login' %}">Log In</a></li>
+            <li><a href="{% url 'account_signup' %}">Sign Up</a></li>
+            {% endif %}
+
+          </ul>
+        </div>
+      </nav>
+    </div>
+
+
+    <ul class="sidenav blue lighten-3" id="mobile-menu">
+      {% if user.is_authenticated %}
+      <li><a href="{% url 'account_email' %}" class="waves-effect"><i class="material-icons">email</i>E-mail</a></li>
+      <li><a href="{% url 'account_change_password' %}" class="waves-effect"><i class="material-icons">security</i>Password</a></li>
+      <li><a href="{% url 'socialaccount_connections' %}" class="waves-effect"><i class="material-icons">cloud</i>Accounts</a></li>
+      <li class="divider" tabindex="-1"></li>
+      <li><a href="{% url 'account_logout' %}" class="waves-effect"><i class="material-icons">cancel</i>Sign Out</a></li>
+      {% else %}
+      <li><a href="{% url 'account_login' %}" class="waves-effect"><i class="material-icons">account_circle</i>Log In</a></li>
+      <li class="divider" tabindex="-1"></li>
+      <li><a href="{% url 'account_signup' %}" class="waves-effect"><i class="material-icons">create</i>Sign Up</a></li>
+      {% endif %}
+    </ul>
+
+
+    <div class="container">
+
+
+      {% if messages %}
+      <!-- Show error messages on a card -->
+      <div class="row">
+        <div class="col s12 m10">
+          <div class="card blue-grey darken-1">
+            <div class="card-content white-text">
+              <ul>
+                {% for message in messages %}
+                <li>{{message}}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+
+      <div class="row">
+        <div class="col s12 m10">
+
+              {% block content %}
+              {% endblock %}
+
+        </div>
+      </div>
+    </div>
+
+
+    {% endblock %}
+    {% block extra_body %}
+    {% endblock %}
+
+
+  </body>
+</html>

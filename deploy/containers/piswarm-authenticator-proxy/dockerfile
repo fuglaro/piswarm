@@ -1,0 +1,32 @@
+ARG baseimg=nginx
+
+# Get static files
+FROM piswarm-authenticator AS authenticator
+# Fake the environment variables so we can extract the static files
+ENV SECRET_KEY NONE
+ENV DB_USER NONE
+ENV DB_PASS NONE
+ENV DB_HOST NONE
+ENV DB_PORT NONE
+ENV EMAIL_HOST NONE
+ENV EMAIL_PORT NONE
+ENV EMAIL_HOST_USER NONE
+ENV EMAIL_HOST_PASSWORD NONE
+# Collect the static files from django apps
+RUN python manage.py collectstatic
+
+# Serve static files from Nginx
+# Also redirect to django
+FROM $baseimg
+RUN mkdir -p /var/app/current
+WORKDIR /var/app/current
+COPY --from=authenticator /var/app/current/static static
+RUN echo "server {\n\
+    listen 8000;\n\
+    location /auth/static/ {\n\
+        alias /var/app/current/static/;\n\
+    }\n\
+    location /auth/ {\n\
+        proxy_pass http://authenticator:8000;\n\
+    }\n\
+}\n" > /etc/nginx/conf.d/proxy.conf

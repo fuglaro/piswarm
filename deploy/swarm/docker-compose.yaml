@@ -1,0 +1,79 @@
+version: "3.7"
+
+services:
+
+  gateway:
+    image: 127.0.0.1:5000/piswarm-gateway
+    ports:
+      - 443:443
+    volumes:
+      - shared-gateway:/etc/nginx/userconf
+
+  authenticator:
+    image: 127.0.0.1:5000/piswarm-authenticator
+    environment:
+      SECRET_KEY_FILE: /run/secrets/authenticator_secret_key
+      EMAIL_HOST: smtp.gmail.com
+      EMAIL_PORT: 587
+      EMAIL_HOST_USER_FILE: /run/secrets/authenticator_email_user
+      EMAIL_HOST_PASSWORD_FILE: /run/secrets/authenticator_email_password
+      DB_HOST: authenticator-mysql
+      DB_PORT: 3306
+      DB_USER: authenticator
+      DB_PASS_FILE: /run/secrets/mysql_authenticator_password
+      SUPERUSER: chief
+      SUPERUSER_EMAIL: bcr@convex.cc
+      DOMAIN: bcr.convex.cc
+      SITE_NAME: Battle Chat Rising
+    secrets:
+      - authenticator_secret_key
+      - authenticator_email_user
+      - authenticator_email_password
+      - mysql_authenticator_password
+      - authenticator_superuser_password
+    depends_on:
+      - authenticator-mysql
+
+  authenticator-proxy:
+    image: 127.0.0.1:5000/piswarm-authenticator-proxy
+
+  authenticator-mysql:
+    image: 127.0.0.1:5000/piswarm-secure-mysql
+    ports:
+      - 3306:3306
+    secrets:
+      - mysql_authenticator_password
+      - mysql_authenticator_encryption_key
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_authenticator_password
+      MYSQL_DATABASE: authenticator
+      MYSQL_USER: authenticator
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_authenticator_password
+    volumes:
+      - storage-authenticator-mysql-db:/var/lib/mysql
+    networks:
+      - default
+      - authenticator-mysql
+
+networks:
+  authenticator-mysql:
+    driver: overlay
+    attachable: true
+
+secrets:
+  mysql_authenticator_password:
+    file: secrets/mysql_authenticator_password
+  mysql_authenticator_encryption_key:
+    file: secrets/mysql_authenticator_encryption_key
+  authenticator_secret_key:
+    file: secrets/authenticator_secret_key
+  authenticator_email_user:
+    file: secrets/authenticator_email_user
+  authenticator_email_password:
+    file: secrets/authenticator_email_password
+  authenticator_superuser_password:
+    file: secrets/authenticator_superuser_password
+
+volumes:
+  storage-authenticator-mysql-db:
+  shared-gateway:

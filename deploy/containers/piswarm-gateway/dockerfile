@@ -1,0 +1,4 @@
+ARG baseimg=nginx
+FROM $baseimg
+ADD nginx/conf.d /etc/nginx/conf.d
+ADD nginx/fragments /etc/nginx/fragments
