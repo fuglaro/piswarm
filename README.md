@@ -1,5 +1,5 @@
 # Contents
-* [Host Configuration](hosts/raspberrypi/README.md)
+* [Host Configuration](hosts/rasberrypi/README.md)
 * [Authentication Microservice](services/authenticator/README.md)
 * [Project Deployment](deploy/README.md)
 
