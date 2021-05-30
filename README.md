@@ -1,7 +1,7 @@
 # Contents
-* [Host Configuration](piswarm/hosts/raspberrypi/README.md)
-* [Authentication Microservice](piswarm/services/authenticator/README.md)
-* [Project Deployment](piswarm/deploy/README.md)
+* [Host Configuration](hosts/raspberrypi/README.md)
+* [Authentication Microservice](services/authenticator/README.md)
+* [Project Deployment](deploy/README.md)
 
 # TODO
 * sort out all the storage volumes and update the docker files.
